@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -8,6 +9,7 @@ export type AuthUser = {
   trustScore: number;
   isVerified?: boolean;
   selfieImage?: string | null; // Add selfieImage property
+  mobileNumber?: string | null; // Add mobile number property
 };
 
 export const signUp = async (email: string, name: string, password: string) => {
@@ -33,6 +35,46 @@ export const signIn = async (email: string, password: string) => {
 
   if (error) throw error;
   return data;
+};
+
+// New function to send OTP to mobile
+export const sendMobileOTP = async (mobileNumber: string) => {
+  // In a real implementation, this would use a provider like Twilio
+  // For demo purposes, we'll simulate OTP generation
+  const { data, error } = await supabase.auth.signInWithOtp({
+    phone: mobileNumber,
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+// New function to verify OTP
+export const verifyMobileOTP = async (mobileNumber: string, otp: string) => {
+  const { data, error } = await supabase.auth.verifyOtp({
+    phone: mobileNumber,
+    token: otp,
+    type: 'sms',
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+// Function to update mobile number in profile
+export const updateMobileNumber = async (userId: string, mobileNumber: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc(
+      'verify_mobile_number',
+      { user_id: userId, phone_number: mobileNumber }
+    );
+    
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error updating mobile number:", error);
+    throw error;
+  }
 };
 
 export const signOut = async () => {
@@ -62,6 +104,7 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
       trustScore: 50,
       isVerified: false,
       selfieImage: null,
+      mobileNumber: null,
     };
   }
   
@@ -74,6 +117,10 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
   const selfieImage = Object.prototype.hasOwnProperty.call(profile, 'selfie_image') ? 
     (profile as any).selfie_image : null;
   
+  // Get mobile number from profile  
+  const mobileNumber = Object.prototype.hasOwnProperty.call(profile, 'mobile_number') ? 
+    (profile as any).mobile_number : null;
+  
   return {
     id: user.id,
     name: profile.name || user.user_metadata?.name || 'User',
@@ -81,6 +128,7 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
     trustScore: profile.trust_score || 50,
     isVerified: isVerified,
     selfieImage: selfieImage,
+    mobileNumber: mobileNumber,
   };
 };
 
@@ -100,6 +148,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<AuthUse
     if (updates.name) profileUpdates.name = updates.name;
     if (updates.isVerified !== undefined) profileUpdates.is_verified = updates.isVerified;
     if (updates.selfieImage !== undefined) profileUpdates.selfie_image = updates.selfieImage;
+    if (updates.mobileNumber !== undefined) profileUpdates.mobile_number = updates.mobileNumber;
     
     // Update profile in the profiles table
     const { error } = await supabase

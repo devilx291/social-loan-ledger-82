@@ -1,8 +1,7 @@
-
-import { useState, useRef, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { verifyDocument } from "@/services/documentService";
+import { useState, useRef, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useSelfieCapture() {
   const { user, updateUser } = useAuth();
@@ -17,7 +16,6 @@ export function useSelfieCapture() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Clean up camera stream when component unmounts or camera is hidden
   useEffect(() => {
     return () => {
       if (streamRef.current) {
@@ -27,7 +25,6 @@ export function useSelfieCapture() {
     };
   }, []);
 
-  // Stop camera when showCamera changes to false
   useEffect(() => {
     if (!showCamera && streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -36,7 +33,6 @@ export function useSelfieCapture() {
   }, [showCamera]);
 
   useEffect(() => {
-    // Check if user is already verified and has a selfie image
     if (user?.isVerified) {
       setSelfieStatus("verified");
       if (user?.selfieImage) {
@@ -45,7 +41,6 @@ export function useSelfieCapture() {
     }
   }, [user]);
 
-  // Start camera for selfie KYC
   const startCamera = async () => {
     try {
       setCameraError(null);
@@ -66,7 +61,6 @@ export function useSelfieCapture() {
           streamRef.current = stream;
           setShowCamera(true);
           
-          // Wait for video to be ready
           videoRef.current.onloadedmetadata = () => {
             if (videoRef.current) {
               videoRef.current.play().catch(err => {
@@ -95,7 +89,6 @@ export function useSelfieCapture() {
     }
   };
 
-  // Capture selfie from camera
   const captureSelfie = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
@@ -103,18 +96,12 @@ export function useSelfieCapture() {
       const context = canvas.getContext('2d');
       
       if (context) {
-        // Set canvas size to match video dimensions
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        
-        // Draw the current video frame to the canvas
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Convert canvas to data URL (PNG format)
         const imageData = canvas.toDataURL('image/png');
         setSelfieImage(imageData);
         
-        // Stop the camera after capturing
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
@@ -124,14 +111,12 @@ export function useSelfieCapture() {
     }
   };
 
-  // Verify selfie for KYC
   const handleVerifySelfie = async () => {
     if (!selfieImage || !user) return;
     
     setCapturingSelfie(true);
     
     try {
-      // Convert base64 to blob for FormData
       const response = await fetch(selfieImage);
       const blob = await response.blob();
       
@@ -146,7 +131,6 @@ export function useSelfieCapture() {
         setSelfieStatus("verified");
         setVerificationMessage("Selfie verification successful. Your account is now verified.");
         
-        // Update user trust score and verification status
         await updateUser({
           ...user,
           trustScore: Math.min(100, user.trustScore + 20),
@@ -181,11 +165,22 @@ export function useSelfieCapture() {
     }
   };
 
-  // Reset selfie and restart camera
   const retakeSelfie = () => {
     setSelfieImage(null);
     setSelfieStatus("idle");
     startCamera();
+  };
+
+  const uploadSelfie = async (base64Image: string) => {
+    try {
+      if (user) {
+        await updateUser({
+          selfieImage: base64Image
+        });
+      }
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+    }
   };
 
   return {
@@ -200,6 +195,7 @@ export function useSelfieCapture() {
     startCamera,
     captureSelfie,
     handleVerifySelfie,
-    retakeSelfie
+    retakeSelfie,
+    uploadSelfie
   };
 }

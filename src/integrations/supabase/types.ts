@@ -67,6 +67,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_verified: boolean | null
+          mobile_number: string | null
           name: string
           phone_number: string | null
           trust_score: number
@@ -74,6 +76,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id: string
+          is_verified?: boolean | null
+          mobile_number?: string | null
           name: string
           phone_number?: string | null
           trust_score?: number
@@ -81,6 +85,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_verified?: boolean | null
+          mobile_number?: string | null
           name?: string
           phone_number?: string | null
           trust_score?: number
@@ -196,6 +202,13 @@ export type Database = {
           score_change: number
         }
         Returns: undefined
+      }
+      verify_mobile_number: {
+        Args: {
+          user_id: string
+          phone_number: string
+        }
+        Returns: boolean
       }
     }
     Enums: {

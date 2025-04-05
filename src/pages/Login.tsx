@@ -4,8 +4,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowRight, PiggyBank, ShieldCheck, KeyRound, Mail } from "lucide-react";
+import { ArrowRight, PiggyBank, ShieldCheck, KeyRound, Mail, Smartphone } from "lucide-react";
+import OTPLoginForm from "@/components/auth/OTPLoginForm";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -43,50 +45,69 @@ const Login = () => {
           <h1 className="text-3xl font-display font-bold mb-2 text-gray-900">Welcome Back</h1>
           <p className="text-muted-foreground mb-8">Enter your credentials to access your account</p>
           
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  required
-                  className="pl-10 py-6 bg-gray-50 border-gray-200"
-                />
-              </div>
-            </div>
+          <Tabs defaultValue="email" className="mb-6">
+            <TabsList className="grid grid-cols-2 mb-6">
+              <TabsTrigger value="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                <span>Email</span>
+              </TabsTrigger>
+              <TabsTrigger value="mobile" className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                <span>Mobile OTP</span>
+              </TabsTrigger>
+            </TabsList>
             
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label htmlFor="password" className="text-sm font-medium">Password</Label>
-                <Link to="#" className="text-sm text-brand-primary hover:underline">Forgot password?</Link>
-              </div>
-              <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="pl-10 py-6 bg-gray-50 border-gray-200"
-                />
-              </div>
-            </div>
+            <TabsContent value="email">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      required
+                      className="pl-10 py-6 bg-gray-50 border-gray-200"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                    <Link to="#" className="text-sm text-brand-primary hover:underline">Forgot password?</Link>
+                  </div>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      className="pl-10 py-6 bg-gray-50 border-gray-200"
+                    />
+                  </div>
+                </div>
+                
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-90 transition-opacity py-6 text-lg"
+                >
+                  {isLoading ? "Signing in..." : "Sign In"}
+                </Button>
+              </form>
+            </TabsContent>
             
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-90 transition-opacity py-6 text-lg"
-            >
-              {isLoading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
+            <TabsContent value="mobile">
+              <OTPLoginForm />
+            </TabsContent>
+          </Tabs>
           
           <p className="text-center mt-8 text-muted-foreground">
             Don't have an account?{" "}

@@ -22,6 +22,7 @@ import CreditAssessment from "./pages/CreditAssessment";
 import Settings from "./pages/Settings";
 import HelpSupport from "./pages/HelpSupport";
 import DocumentVerification from "./pages/DocumentVerification";
+import MobileVerification from "./pages/MobileVerification";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/help-support" element={<ProtectedRoute><HelpSupport /></ProtectedRoute>} />
               <Route path="/document-verification" element={<ProtectedRoute><DocumentVerification /></ProtectedRoute>} />
+              <Route path="/mobile-verification" element={<ProtectedRoute><MobileVerification /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </SidebarProvider>
