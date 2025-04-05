@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -8,6 +7,7 @@ export type AuthUser = {
   phoneNumber: string; // This will store email
   trustScore: number;
   isVerified?: boolean;
+  selfieImage?: string | null; // Add selfieImage property
 };
 
 export const signUp = async (email: string, name: string, password: string) => {
@@ -61,6 +61,7 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
       phoneNumber: user.email || '',
       trustScore: 50,
       isVerified: false,
+      selfieImage: null,
     };
   }
   
@@ -69,12 +70,17 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
   const isVerified = Object.prototype.hasOwnProperty.call(profile, 'is_verified') ? 
     (profile as any).is_verified : false;
   
+  // Get selfie image from profile
+  const selfieImage = Object.prototype.hasOwnProperty.call(profile, 'selfie_image') ? 
+    (profile as any).selfie_image : null;
+  
   return {
     id: user.id,
     name: profile.name || user.user_metadata?.name || 'User',
     phoneNumber: user.email || '',
     trustScore: profile.trust_score || 50,
     isVerified: isVerified,
+    selfieImage: selfieImage,
   };
 };
 
@@ -93,6 +99,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<AuthUse
     const profileUpdates: Record<string, any> = {};
     if (updates.name) profileUpdates.name = updates.name;
     if (updates.isVerified !== undefined) profileUpdates.is_verified = updates.isVerified;
+    if (updates.selfieImage !== undefined) profileUpdates.selfie_image = updates.selfieImage;
     
     // Update profile in the profiles table
     const { error } = await supabase
@@ -108,7 +115,6 @@ export const updateUserProfile = async (userId: string, updates: Partial<AuthUse
   }
 };
 
-// Updated function to update a user's trust score
 export const updateUserTrustScore = async (userId: string, trustScore: number) => {
   try {
     // First, make sure the score is within valid range
@@ -145,7 +151,6 @@ export const updateUserTrustScore = async (userId: string, trustScore: number) =
   }
 };
 
-// New function to handle referrals
 export const processReferral = async (referrerId: string, newUserId: string) => {
   try {
     // Create referral record

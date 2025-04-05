@@ -36,9 +36,12 @@ export function useSelfieCapture() {
   }, [showCamera]);
 
   useEffect(() => {
-    // Check if user is already verified
+    // Check if user is already verified and has a selfie image
     if (user?.isVerified) {
       setSelfieStatus("verified");
+      if (user?.selfieImage) {
+        setSelfieImage(user.selfieImage);
+      }
     }
   }, [user]);
 
