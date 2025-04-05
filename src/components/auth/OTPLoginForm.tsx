@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sendMobileOTP, verifyMobileOTP } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, SendHorizontal, KeyRound, ArrowRight, AlertTriangle } from "lucide-react";
+import { Loader2, SendHorizontal, KeyRound, ArrowRight } from "lucide-react";
 import { 
   InputOTP, 
   InputOTPGroup, 
@@ -24,7 +24,6 @@ const OTPLoginForm = () => {
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation specifically for Indian numbers
     if (!mobileNumber) {
       toast({
         title: "Error",
@@ -34,24 +33,14 @@ const OTPLoginForm = () => {
       return;
     }
 
-    // Enforce Indian number format
-    const indianNumberRegex = /^\+91[6-9]\d{9}$/;
-    const formattedNumber = mobileNumber.startsWith('+') 
-      ? mobileNumber 
-      : `+91${mobileNumber.replace(/^0/, '')}`;
-    
-    if (!indianNumberRegex.test(formattedNumber)) {
-      toast({
-        title: "Invalid Number Format",
-        description: "Please enter a valid Indian mobile number starting with +91",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
+      // Format number to E.164 format if not already done
+      const formattedNumber = mobileNumber.startsWith('+') 
+        ? mobileNumber 
+        : `+${mobileNumber}`;
+        
       await sendMobileOTP(formattedNumber);
       setOtpSent(true);
       
@@ -86,10 +75,10 @@ const OTPLoginForm = () => {
     setIsLoading(true);
 
     try {
-      // Ensure Indian number format
-      const formattedNumber = mobileNumber.startsWith('+91') 
+      // Format number to E.164 format if not already done
+      const formattedNumber = mobileNumber.startsWith('+') 
         ? mobileNumber 
-        : `+91${mobileNumber.replace(/^0/, '')}`;
+        : `+${mobileNumber}`;
         
       await verifyMobileOTP(formattedNumber, otp);
       
@@ -115,46 +104,28 @@ const OTPLoginForm = () => {
     <div>
       {!otpSent ? (
         <form onSubmit={handleSendOTP} className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
-            <div className="flex items-start">
-              <div className="mr-2 mt-1">
-                <AlertTriangle className="h-4 w-4 text-blue-500" />
-              </div>
-              <p className="text-sm text-blue-700">
-                This OTP login is only for Indian mobile numbers (+91)
-              </p>
-            </div>
-          </div>
-        
           <div className="space-y-2">
-            <Label htmlFor="mobileNumber">Mobile Number (India)</Label>
+            <Label htmlFor="mobileNumber">Mobile Number</Label>
             <div className="relative">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
-                +91
-              </div>
               <Input
                 id="mobileNumber"
                 type="tel"
-                placeholder="9XXXXXXXXX"
-                value={mobileNumber.replace(/^\+91/, '')}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
-                  setMobileNumber(value);
-                }}
-                className="pl-12 py-6 bg-gray-50 border-gray-200"
-                maxLength={10}
+                placeholder="Enter your mobile number with country code (e.g. +919876543210)"
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                className="pl-10 py-6 bg-gray-50 border-gray-200"
                 required
               />
-              <SendHorizontal className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <SendHorizontal className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Enter 10 digits (e.g., 9876543210)
+              Include your country code, e.g., +91 for India
             </p>
           </div>
 
           <Button 
             type="submit" 
-            disabled={isLoading || mobileNumber.length < 10}
+            disabled={isLoading || !mobileNumber}
             className="w-full bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-90 transition-opacity py-6 text-lg"
           >
             {isLoading ? (
@@ -174,7 +145,7 @@ const OTPLoginForm = () => {
           <div className="space-y-2">
             <Label htmlFor="otp">Verification Code</Label>
             <p className="text-sm text-muted-foreground mb-4">
-              Enter the 4-digit code sent to +91 {mobileNumber.replace(/^\+91/, '')}
+              Enter the 4-digit code sent to {mobileNumber}
             </p>
             
             <div className="flex justify-center">

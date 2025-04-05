@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,8 +32,7 @@ const MobileVerification = () => {
     }
     
     if (user?.mobileNumber) {
-      // Strip +91 prefix for display
-      setMobileNumber(user.mobileNumber.replace(/^\+91/, ''));
+      setMobileNumber(user.mobileNumber);
     }
   }, [user]);
 
@@ -48,24 +46,14 @@ const MobileVerification = () => {
       return;
     }
 
-    // Enforce Indian number format
-    const indianNumberRegex = /^\+91[6-9]\d{9}$/;
-    const formattedNumber = mobileNumber.startsWith('+91') 
-      ? mobileNumber 
-      : `+91${mobileNumber.replace(/^0/, '')}`;
-    
-    if (!indianNumberRegex.test(formattedNumber)) {
-      toast({
-        title: "Invalid Number Format",
-        description: "Please enter a valid Indian mobile number",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
+      // Format number to E.164 format if not already done
+      const formattedNumber = mobileNumber.startsWith('+') 
+        ? mobileNumber 
+        : `+${mobileNumber}`;
+        
       await sendMobileOTP(formattedNumber);
       setOtpSent(true);
       
@@ -98,10 +86,10 @@ const MobileVerification = () => {
     setIsLoading(true);
 
     try {
-      // Format number to E.164 format with Indian prefix
-      const formattedNumber = mobileNumber.startsWith('+91') 
+      // Format number to E.164 format if not already done
+      const formattedNumber = mobileNumber.startsWith('+') 
         ? mobileNumber 
-        : `+91${mobileNumber.replace(/^0/, '')}`;
+        : `+${mobileNumber}`;
         
       await verifyMobileOTP(formattedNumber, otp);
       
@@ -148,7 +136,7 @@ const MobileVerification = () => {
             <CardHeader>
               <CardTitle>Verify Your Mobile Number</CardTitle>
               <CardDescription>
-                Verifying your Indian mobile number adds an extra layer of security and enables OTP login
+                Verifying your mobile number adds an extra layer of security and enables OTP login
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -165,7 +153,7 @@ const MobileVerification = () => {
                   <div>
                     <Label htmlFor="otp">Verification Code</Label>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Enter the 4-digit code sent to +91 {mobileNumber.replace(/^\+91/, '')}
+                      Enter the 4-digit code sent to {mobileNumber}
                     </p>
                     
                     <div className="flex justify-center my-6">
@@ -212,32 +200,23 @@ const MobileVerification = () => {
                       <AlertCircle className="h-5 w-5 mr-2 mt-0.5" />
                       <div>
                         <p className="font-medium">Verification Required</p>
-                        <p className="text-sm">Please verify your Indian mobile number to enable OTP-based login and additional security features</p>
+                        <p className="text-sm">Please verify your mobile number to enable OTP-based login and additional security features</p>
                       </div>
                     </div>
                   </div>
                 
                   <div className="space-y-2">
-                    <Label htmlFor="mobileNumber">Mobile Number (India)</Label>
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
-                        +91
-                      </div>
-                      <Input
-                        id="mobileNumber"
-                        type="tel"
-                        placeholder="9XXXXXXXXX"
-                        value={mobileNumber.replace(/^\+91/, '')}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '');
-                          setMobileNumber(value);
-                        }}
-                        className="pl-12 border-gray-300"
-                        maxLength={10}
-                      />
-                    </div>
+                    <Label htmlFor="mobileNumber">Mobile Number</Label>
+                    <Input
+                      id="mobileNumber"
+                      type="tel"
+                      placeholder="Enter with country code (e.g. +919876543210)"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value)}
+                      className="border-gray-300"
+                    />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Enter 10 digits without country code (e.g., 9876543210)
+                      Include your country code, e.g., +91 for India
                     </p>
                   </div>
                 </div>
@@ -265,7 +244,7 @@ const MobileVerification = () => {
               ) : (
                 <Button 
                   onClick={handleSendOTP} 
-                  disabled={isLoading || mobileNumber.length < 10}
+                  disabled={isLoading || !mobileNumber}
                 >
                   {isLoading ? (
                     <>
