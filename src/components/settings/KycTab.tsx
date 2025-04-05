@@ -60,10 +60,10 @@ export const KycTab = () => {
                 <div className="relative w-full max-w-md mb-4">
                   <video 
                     ref={videoRef} 
+                    className="w-full h-auto rounded-lg border border-gray-200"
                     autoPlay 
                     playsInline 
                     muted
-                    className="w-full h-auto rounded-lg border border-gray-200"
                   />
                   <div className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center pointer-events-none">
                     <div className="border-2 border-dashed border-white w-64 h-64 rounded-full opacity-50"></div>

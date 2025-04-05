@@ -63,7 +63,7 @@ const OTPLoginForm = () => {
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!otp || otp.length < 6) {
+    if (!otp || otp.length < 4) {
       toast({
         title: "Error",
         description: "Please enter a valid OTP",
@@ -145,14 +145,14 @@ const OTPLoginForm = () => {
           <div className="space-y-2">
             <Label htmlFor="otp">Verification Code</Label>
             <p className="text-sm text-muted-foreground mb-4">
-              Enter the 6-digit code sent to {mobileNumber}
+              Enter the 4-digit code sent to {mobileNumber}
             </p>
             
             <div className="flex justify-center">
               <InputOTP 
                 value={otp} 
                 onChange={setOtp} 
-                maxLength={6}
+                maxLength={4}
                 containerClassName="gap-3"
               >
                 <InputOTPGroup>
@@ -160,8 +160,6 @@ const OTPLoginForm = () => {
                   <InputOTPSlot index={1} className="border-gray-300 h-12 w-12 text-xl" />
                   <InputOTPSlot index={2} className="border-gray-300 h-12 w-12 text-xl" />
                   <InputOTPSlot index={3} className="border-gray-300 h-12 w-12 text-xl" />
-                  <InputOTPSlot index={4} className="border-gray-300 h-12 w-12 text-xl" />
-                  <InputOTPSlot index={5} className="border-gray-300 h-12 w-12 text-xl" />
                 </InputOTPGroup>
               </InputOTP>
             </div>
@@ -189,7 +187,7 @@ const OTPLoginForm = () => {
 
           <Button 
             type="submit" 
-            disabled={isLoading || otp.length < 6}
+            disabled={isLoading || otp.length < 4}
             className="w-full bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-90 transition-opacity py-6 text-lg"
           >
             {isLoading ? (

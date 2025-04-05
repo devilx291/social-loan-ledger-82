@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -75,7 +74,7 @@ const MobileVerification = () => {
   };
 
   const handleVerifyOTP = async () => {
-    if (!otp || otp.length < 6) {
+    if (!otp || otp.length < 4) {
       toast({
         title: "Error",
         description: "Please enter a valid OTP",
@@ -154,14 +153,14 @@ const MobileVerification = () => {
                   <div>
                     <Label htmlFor="otp">Verification Code</Label>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Enter the 6-digit code sent to {mobileNumber}
+                      Enter the 4-digit code sent to {mobileNumber}
                     </p>
                     
                     <div className="flex justify-center my-6">
                       <InputOTP 
                         value={otp} 
                         onChange={setOtp} 
-                        maxLength={6}
+                        maxLength={4}
                         containerClassName="gap-3"
                       >
                         <InputOTPGroup>
@@ -169,8 +168,6 @@ const MobileVerification = () => {
                           <InputOTPSlot index={1} className="border-gray-300 h-12 w-12 text-xl" />
                           <InputOTPSlot index={2} className="border-gray-300 h-12 w-12 text-xl" />
                           <InputOTPSlot index={3} className="border-gray-300 h-12 w-12 text-xl" />
-                          <InputOTPSlot index={4} className="border-gray-300 h-12 w-12 text-xl" />
-                          <InputOTPSlot index={5} className="border-gray-300 h-12 w-12 text-xl" />
                         </InputOTPGroup>
                       </InputOTP>
                     </div>
@@ -233,7 +230,7 @@ const MobileVerification = () => {
               ) : otpSent ? (
                 <Button 
                   onClick={handleVerifyOTP} 
-                  disabled={isLoading || otp.length < 6}
+                  disabled={isLoading || otp.length < 4}
                 >
                   {isLoading ? (
                     <>
