@@ -64,10 +64,11 @@ export const verifyMobileOTP = async (mobileNumber: string, otp: string) => {
 // Function to update mobile number in profile
 export const updateMobileNumber = async (userId: string, mobileNumber: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc(
-      'verify_mobile_number',
-      { user_id: userId, phone_number: mobileNumber }
-    );
+    // Using typed parameters for RPC call
+    const { data, error } = await supabase.rpc('verify_mobile_number', {
+      user_id: userId,
+      phone_number: mobileNumber
+    });
     
     if (error) throw error;
     return true;
