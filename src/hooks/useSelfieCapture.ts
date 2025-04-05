@@ -12,6 +12,7 @@ export function useSelfieCapture() {
   const [selfieStatus, setSelfieStatus] = useState<"idle" | "verified" | "rejected">("idle");
   const [capturingSelfie, setCapturingSelfie] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -44,14 +45,36 @@ export function useSelfieCapture() {
   // Start camera for selfie KYC
   const startCamera = async () => {
     try {
+      setCameraError(null);
+      
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const constraints = { 
+          video: { 
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          } 
+        };
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           streamRef.current = stream;
           setShowCamera(true);
+          
+          // Wait for video to be ready
+          videoRef.current.onloadedmetadata = () => {
+            if (videoRef.current) {
+              videoRef.current.play().catch(err => {
+                console.error("Error playing video:", err);
+                setCameraError("Failed to start camera stream");
+              });
+            }
+          };
         }
       } else {
+        setCameraError("Your browser doesn't support camera access");
         toast({
           title: "Camera access failed",
           description: "Your browser doesn't support camera access or permission was denied.",
@@ -60,6 +83,7 @@ export function useSelfieCapture() {
       }
     } catch (error: any) {
       console.error("Error accessing camera:", error);
+      setCameraError(error.message || "Failed to access camera");
       toast({
         title: "Camera access denied",
         description: "Please allow camera access to complete KYC verification.",
@@ -71,13 +95,20 @@ export function useSelfieCapture() {
   // Capture selfie from camera
   const captureSelfie = () => {
     if (videoRef.current && canvasRef.current) {
-      const context = canvasRef.current.getContext('2d');
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
       if (context) {
-        canvasRef.current.width = videoRef.current.videoWidth;
-        canvasRef.current.height = videoRef.current.videoHeight;
-        context.drawImage(videoRef.current, 0, 0, videoRef.current.videoWidth, videoRef.current.videoHeight);
+        // Set canvas size to match video dimensions
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
         
-        const imageData = canvasRef.current.toDataURL('image/png');
+        // Draw the current video frame to the canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert canvas to data URL (PNG format)
+        const imageData = canvas.toDataURL('image/png');
         setSelfieImage(imageData);
         
         // Stop the camera after capturing
@@ -116,7 +147,8 @@ export function useSelfieCapture() {
         await updateUser({
           ...user,
           trustScore: Math.min(100, user.trustScore + 20),
-          isVerified: true
+          isVerified: true,
+          selfieImage: selfieImage
         });
         
         toast({
@@ -161,6 +193,7 @@ export function useSelfieCapture() {
     videoRef,
     canvasRef,
     verificationMessage,
+    cameraError,
     startCamera,
     captureSelfie,
     handleVerifySelfie,

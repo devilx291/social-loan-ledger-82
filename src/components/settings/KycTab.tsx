@@ -2,7 +2,7 @@
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, CheckCircle, UserCheck, Loader2 } from "lucide-react";
+import { Camera, CheckCircle, UserCheck, Loader2, AlertTriangle } from "lucide-react";
 import { useSelfieCapture } from "@/hooks/useSelfieCapture";
 
 export const KycTab = () => {
@@ -14,6 +14,7 @@ export const KycTab = () => {
     videoRef,
     canvasRef,
     verificationMessage,
+    cameraError,
     startCamera,
     captureSelfie,
     handleVerifySelfie,
@@ -46,6 +47,14 @@ export const KycTab = () => {
           </p>
           
           <div className="border rounded-lg p-4">
+            {cameraError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Camera Error</AlertTitle>
+                <AlertDescription>{cameraError}</AlertDescription>
+              </Alert>
+            )}
+            
             {showCamera ? (
               <div className="flex flex-col items-center">
                 <div className="relative w-full max-w-md mb-4">
@@ -53,6 +62,7 @@ export const KycTab = () => {
                     ref={videoRef} 
                     autoPlay 
                     playsInline 
+                    muted
                     className="w-full h-auto rounded-lg border border-gray-200"
                   />
                   <div className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center pointer-events-none">
