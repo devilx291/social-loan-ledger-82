@@ -1,16 +1,18 @@
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { verifyDocument } from '@/services/documentService';
+import { setupCamera, stopCameraStream, captureImageFromVideo } from '@/utils/cameraUtils';
+import { verifySelfieImage, updateUserSelfie } from '@/services/selfieVerificationService';
+
+type SelfieStatus = "idle" | "verified" | "rejected";
 
 export function useSelfieCapture() {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const [showCamera, setShowCamera] = useState(false);
   const [selfieImage, setSelfieImage] = useState<string | null>(null);
-  const [selfieStatus, setSelfieStatus] = useState<"idle" | "verified" | "rejected">("idle");
+  const [selfieStatus, setSelfieStatus] = useState<SelfieStatus>("idle");
   const [capturingSelfie, setCapturingSelfie] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -18,22 +20,23 @@ export function useSelfieCapture() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // Clean up camera stream on unmount
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
+      stopCameraStream(streamRef.current);
+      streamRef.current = null;
     };
   }, []);
 
+  // Stop camera stream when camera is hidden
   useEffect(() => {
     if (!showCamera && streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      stopCameraStream(streamRef.current);
       streamRef.current = null;
     }
   }, [showCamera]);
 
+  // Set verification status based on user data
   useEffect(() => {
     if (user?.isVerified) {
       setSelfieStatus("verified");
@@ -44,72 +47,45 @@ export function useSelfieCapture() {
   }, [user]);
 
   const startCamera = async () => {
-    try {
-      setCameraError(null);
-      
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const constraints = { 
-          video: { 
-            facingMode: "user",
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          } 
-        };
-        
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          streamRef.current = stream;
-          setShowCamera(true);
-          
-          videoRef.current.onloadedmetadata = () => {
-            if (videoRef.current) {
-              videoRef.current.play().catch(err => {
-                console.error("Error playing video:", err);
-                setCameraError("Failed to start camera stream");
-              });
-            }
-          };
-        }
-      } else {
-        setCameraError("Your browser doesn't support camera access");
-        toast({
-          title: "Camera access failed",
-          description: "Your browser doesn't support camera access or permission was denied.",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Error accessing camera:", error);
-      setCameraError(error.message || "Failed to access camera");
+    setCameraError(null);
+    
+    const { stream, error } = await setupCamera(videoRef);
+    
+    if (error) {
+      setCameraError(error);
       toast({
-        title: "Camera access denied",
-        description: "Please allow camera access to complete KYC verification.",
+        title: "Camera access failed",
+        description: error,
         variant: "destructive",
       });
+      return;
+    }
+    
+    if (stream && videoRef.current) {
+      streamRef.current = stream;
+      setShowCamera(true);
+      
+      videoRef.current.onloadedmetadata = () => {
+        if (videoRef.current) {
+          videoRef.current.play().catch(err => {
+            console.error("Error playing video:", err);
+            setCameraError("Failed to start camera stream");
+          });
+        }
+      };
     }
   };
 
   const captureSelfie = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
+    const imageData = captureImageFromVideo(videoRef, canvasRef);
+    if (imageData) {
+      setSelfieImage(imageData);
       
-      if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = canvas.toDataURL('image/png');
-        setSelfieImage(imageData);
-        
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
-          streamRef.current = null;
-        }
-        setShowCamera(false);
+      if (streamRef.current) {
+        stopCameraStream(streamRef.current);
+        streamRef.current = null;
       }
+      setShowCamera(false);
     }
   };
 
@@ -119,26 +95,13 @@ export function useSelfieCapture() {
     setCapturingSelfie(true);
     
     try {
-      const response = await fetch(selfieImage);
-      const blob = await response.blob();
-      
-      const formData = new FormData();
-      formData.append('document', blob, 'selfie.png');
-      formData.append('type', 'selfie');
-      formData.append('userId', user.id);
-      
-      const result = await verifyDocument(formData);
+      const result = await verifySelfieImage(selfieImage, user.id);
       
       if (result.verified) {
         setSelfieStatus("verified");
         setVerificationMessage("Selfie verification successful. Your account is now verified.");
         
-        await updateUser({
-          ...user,
-          trustScore: Math.min(100, user.trustScore + 20),
-          isVerified: true,
-          selfieImage: selfieImage
-        });
+        await updateUserSelfie(updateUser, user, selfieImage);
         
         toast({
           title: "KYC completed",
