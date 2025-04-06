@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { Camera, CheckCircle, UserCheck, Loader2, AlertTriangle } from "lucide-react";
 import { useSelfieCapture } from "@/hooks/useSelfieCapture";
+import { useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export const KycTab = () => {
   const {
@@ -55,26 +57,37 @@ export const KycTab = () => {
               </Alert>
             )}
             
-            {showCamera ? (
-              <div className="flex flex-col items-center">
-                <div className="relative w-full max-w-md mb-4">
-                  <video 
-                    ref={videoRef} 
-                    className="w-full h-auto rounded-lg border border-gray-200"
-                    autoPlay 
-                    playsInline 
-                    muted
-                  />
-                  <div className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center pointer-events-none">
-                    <div className="border-2 border-dashed border-white w-64 h-64 rounded-full opacity-50"></div>
+            {/* Modal for camera view */}
+            <Dialog open={showCamera} onOpenChange={(open) => !open && stopCamera()}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Take a Selfie</DialogTitle>
+                  <DialogDescription>
+                    Position your face clearly in the frame and ensure good lighting
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col items-center py-4">
+                  <div className="relative w-full max-w-md mb-4">
+                    <video 
+                      ref={videoRef} 
+                      className="w-full h-auto rounded-lg border border-gray-200"
+                      autoPlay 
+                      playsInline 
+                      muted
+                    />
+                    <div className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center pointer-events-none">
+                      <div className="border-2 border-dashed border-white w-64 h-64 rounded-full opacity-50"></div>
+                    </div>
                   </div>
+                  <Button onClick={captureSelfie} className="mt-4">
+                    <Camera className="h-4 w-4 mr-2" />
+                    Capture Selfie
+                  </Button>
                 </div>
-                <Button onClick={captureSelfie}>
-                  <Camera className="h-4 w-4 mr-2" />
-                  Capture Selfie
-                </Button>
-              </div>
-            ) : selfieImage ? (
+              </DialogContent>
+            </Dialog>
+            
+            {selfieImage ? (
               <div className="flex flex-col items-center">
                 <div className="w-full max-w-md mb-4">
                   <img 
@@ -134,4 +147,12 @@ export const KycTab = () => {
       </CardContent>
     </Card>
   );
+
+  function stopCamera() {
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  }
 };

@@ -49,30 +49,43 @@ export function useSelfieCapture() {
   const startCamera = async () => {
     setCameraError(null);
     
-    const { stream, error } = await setupCamera(videoRef);
-    
-    if (error) {
-      setCameraError(error);
-      toast({
-        title: "Camera access failed",
-        description: error,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (stream && videoRef.current) {
-      streamRef.current = stream;
-      setShowCamera(true);
+    try {
+      const { stream, error } = await setupCamera(videoRef);
       
-      videoRef.current.onloadedmetadata = () => {
-        if (videoRef.current) {
+      if (error) {
+        setCameraError(error);
+        toast({
+          title: "Camera access failed",
+          description: error,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (stream && videoRef.current) {
+        streamRef.current = stream;
+        setShowCamera(true);
+        
+        // Add this check to ensure video has loaded metadata before playing
+        if (videoRef.current.readyState >= 2) {
           videoRef.current.play().catch(err => {
             console.error("Error playing video:", err);
             setCameraError("Failed to start camera stream");
           });
+        } else {
+          videoRef.current.onloadedmetadata = () => {
+            if (videoRef.current) {
+              videoRef.current.play().catch(err => {
+                console.error("Error playing video:", err);
+                setCameraError("Failed to start camera stream");
+              });
+            }
+          };
         }
-      };
+      }
+    } catch (err) {
+      console.error("Unexpected error starting camera:", err);
+      setCameraError("An unexpected error occurred while accessing the camera");
     }
   };
 
