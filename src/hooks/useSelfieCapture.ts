@@ -52,42 +52,49 @@ export function useSelfieCapture() {
     setCameraError(null);
     setIsCameraReady(false);
     
-    // First show the camera UI so the DOM elements are rendered
+    // Show the camera UI first
     setShowCamera(true);
-    
-    // Allow time for the modal to open and the video element to be added to the DOM
-    setTimeout(async () => {
-      try {
-        console.log("Starting camera setup, video ref exists:", !!videoRef.current);
-        
-        if (!videoRef.current) {
-          setCameraError("Video element not initialized. Please refresh and try again.");
-          return;
-        }
-        
-        const { stream, error } = await setupCamera(videoRef);
-        
-        if (error) {
-          setCameraError(error);
-          toast({
-            title: "Camera access failed",
-            description: error,
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        if (stream) {
-          streamRef.current = stream;
-          setIsCameraReady(true);
-          console.log("Camera started successfully");
-        }
-      } catch (err) {
-        console.error("Unexpected error starting camera:", err);
-        setCameraError("An unexpected error occurred while accessing the camera");
-      }
-    }, 1000); // Give the DOM a full second to render the video element
   };
+
+  // Create a separate effect to handle camera initialization after showCamera changes
+  useEffect(() => {
+    if (showCamera) {
+      const initializeCamera = async () => {
+        // Small delay to ensure the DOM is fully updated
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        try {
+          if (!videoRef.current) {
+            setCameraError("Video element not initialized. Please try again.");
+            return;
+          }
+          
+          const { stream, error } = await setupCamera(videoRef);
+          
+          if (error) {
+            setCameraError(error);
+            toast({
+              title: "Camera access failed",
+              description: error,
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          if (stream) {
+            streamRef.current = stream;
+            setIsCameraReady(true);
+            console.log("Camera started successfully");
+          }
+        } catch (err) {
+          console.error("Unexpected error starting camera:", err);
+          setCameraError("An unexpected error occurred while accessing the camera");
+        }
+      };
+      
+      initializeCamera();
+    }
+  }, [showCamera, toast]);
 
   const stopCamera = () => {
     if (streamRef.current) {

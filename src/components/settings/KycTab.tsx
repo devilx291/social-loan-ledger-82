@@ -4,13 +4,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { Camera, CheckCircle, UserCheck, Loader2, AlertTriangle } from "lucide-react";
 import { useSelfieCapture } from "@/hooks/useSelfieCapture";
-import { useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export const KycTab = () => {
-  const videoElementRef = useRef<HTMLVideoElement | null>(null);
-  const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
-  
   const {
     showCamera,
     selfieImage,
@@ -27,12 +23,6 @@ export const KycTab = () => {
     handleVerifySelfie,
     retakeSelfie
   } = useSelfieCapture();
-
-  // Ensure refs are properly connected
-  useEffect(() => {
-    videoRef.current = videoElementRef.current;
-    canvasRef.current = canvasElementRef.current;
-  }, [videoRef, canvasRef]);
 
   return (
     <Card>
@@ -80,7 +70,7 @@ export const KycTab = () => {
                 <div className="flex flex-col items-center py-4">
                   <div className="relative w-full max-w-md mb-4">
                     <video 
-                      ref={videoElementRef} 
+                      ref={videoRef} 
                       className="w-full h-auto rounded-lg border border-gray-200"
                       autoPlay 
                       playsInline 
@@ -92,7 +82,7 @@ export const KycTab = () => {
                   </div>
                   {isCameraReady ? (
                     <Button 
-                      onClick={() => captureSelfie()} 
+                      onClick={captureSelfie} 
                       className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
                     >
                       <Camera className="h-4 w-4 mr-2" />
@@ -152,7 +142,7 @@ export const KycTab = () => {
                 </Button>
               </div>
             )}
-            <canvas ref={canvasElementRef} className="hidden"></canvas>
+            <canvas ref={canvasRef} className="hidden"></canvas>
           </div>
         </div>
 

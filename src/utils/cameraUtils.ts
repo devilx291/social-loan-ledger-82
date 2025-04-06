@@ -1,144 +1,142 @@
 
-import { MutableRefObject } from 'react';
+/**
+ * Camera utility functions for selfie capture and related operations
+ */
 
-interface CameraSetupResult {
-  stream: MediaStream | null;
-  error: string | null;
-}
+type SetupCameraResult = {
+  stream?: MediaStream;
+  error?: string;
+};
 
-export async function setupCamera(
-  videoRef: MutableRefObject<HTMLVideoElement | null>
-): Promise<CameraSetupResult> {
+/**
+ * Sets up the camera and starts streaming video to the provided element
+ */
+export const setupCamera = async (
+  videoRef: React.RefObject<HTMLVideoElement>
+): Promise<SetupCameraResult> => {
   try {
+    if (!videoRef.current) {
+      console.error("Video element reference not found");
+      return { error: "Video element not found" };
+    }
+
+    console.log("Requesting media devices...");
+    // Check if the browser supports getUserMedia
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      return { 
-        stream: null, 
-        error: "Your browser doesn't support camera access" 
-      };
+      return { error: "Your browser doesn't support camera access" };
     }
-    
-    // Check if videoRef is valid before proceeding
-    if (!videoRef || !videoRef.current) {
-      console.error("Video element reference is not available");
-      return {
-        stream: null,
-        error: "Video element not found. Please try again."
-      };
-    }
-    
-    const constraints = { 
-      video: { 
-        facingMode: "user",
+
+    // Get user media with appropriate constraints
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user", // Front camera
         width: { ideal: 1280 },
-        height: { ideal: 720 }
-      } 
-    };
-    
-    console.log("Requesting camera access with constraints:", constraints);
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    console.log("Camera access granted, stream obtained:", stream);
-    
-    // Set the stream to the video element
-    videoRef.current.srcObject = stream;
-    console.log("Stream assigned to video element:", videoRef.current);
-    
-    // Ensure the video loads properly
-    return new Promise((resolve) => {
-      if (videoRef.current) {
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current) {
-            videoRef.current.play()
-              .then(() => {
-                console.log("Video is now playing");
-                resolve({ stream, error: null });
-              })
-              .catch(err => {
-                console.error("Error playing video:", err);
-                resolve({ stream, error: "Failed to play video stream" });
-              });
-          }
-        };
-        
-        // Add a timeout in case the metadata never loads, increased for better reliability
-        setTimeout(() => {
-          if (videoRef.current && !videoRef.current.paused) {
-            console.log("Video is already playing");
-            resolve({ stream, error: null });
-          } else {
-            console.error("Video metadata loading timeout");
-            resolve({ stream, error: "Camera initialization timeout" });
-          }
-        }, 5000); // Increased timeout for better reliability
-      } else {
-        resolve({ stream, error: "Video element disappeared" });
-      }
+        height: { ideal: 720 },
+      },
+      audio: false,
     });
+
+    if (!stream) {
+      return { error: "Failed to get camera stream" };
+    }
+
+    // Assign the stream to the video element
+    const videoElement = videoRef.current;
+    if (videoElement) {
+      videoElement.srcObject = stream;
+      // Wait for the video to be loaded
+      await new Promise<void>((resolve) => {
+        videoElement.onloadedmetadata = () => {
+          videoElement.play().then(() => resolve());
+        };
+      });
+      
+      console.log("Camera setup complete, video should be playing");
+      return { stream };
+    } else {
+      stopCameraStream(stream);
+      return { error: "Video element is no longer available" };
+    }
   } catch (error: any) {
-    console.error("Error accessing camera:", error);
-    let errorMessage = "Failed to access camera";
+    console.error("Camera setup error:", error);
     
-    // Provide more specific error messages based on the error
-    if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-      errorMessage = "Camera access denied. Please allow camera permissions and try again.";
-    } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
-      errorMessage = "No camera found on your device.";
-    } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
-      errorMessage = "Camera is in use by another application.";
-    } else if (error.name === "OverconstrainedError") {
-      errorMessage = "Camera doesn't meet the required constraints.";
-    } else if (error.name === "TypeError") {
-      errorMessage = "Invalid constraints specified.";
+    // Handle permission errors specifically
+    if (error.name === "NotAllowedError") {
+      return { error: "Camera permission denied. Please allow camera access and try again." };
     }
     
-    return { 
-      stream: null, 
-      error: errorMessage
-    };
+    // Handle other specific errors
+    if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+      return { error: "No camera found on this device" };
+    }
+    
+    if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+      return { error: "Camera is in use by another application" };
+    }
+    
+    // Generic error
+    return { error: `Failed to access camera: ${error.message || "Unknown error"}` };
   }
-}
+};
 
-export function stopCameraStream(stream: MediaStream | null) {
-  console.log("Stopping camera stream:", stream);
-  if (stream) {
-    stream.getTracks().forEach(track => {
+/**
+ * Stops the camera stream
+ */
+export const stopCameraStream = (stream: MediaStream | null) => {
+  if (!stream) return;
+  
+  try {
+    const tracks = stream.getTracks();
+    tracks.forEach((track) => {
       track.stop();
-      console.log("Track stopped:", track.label);
     });
+    console.log("Camera stream stopped");
+  } catch (error) {
+    console.error("Error stopping camera stream:", error);
   }
-}
+};
 
-export function captureImageFromVideo(
-  videoRef: MutableRefObject<HTMLVideoElement | null>,
-  canvasRef: MutableRefObject<HTMLCanvasElement | null>
-): string | null {
-  if (!videoRef.current || !canvasRef.current) {
-    console.warn("Video or canvas ref is null, cannot capture image");
+/**
+ * Captures an image from the video stream and returns it as a base64 data URL
+ */
+export const captureImageFromVideo = (
+  videoRef: React.RefObject<HTMLVideoElement>,
+  canvasRef: React.RefObject<HTMLCanvasElement>
+): string | null => {
+  try {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    
+    if (!video || !canvas) {
+      console.error("Video or canvas element not found");
+      return null;
+    }
+    
+    // Set canvas dimensions to match the video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw the current video frame to the canvas
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      console.error("Could not get 2D context from canvas");
+      return null;
+    }
+    
+    // Flip horizontally to create a mirror image effect
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    
+    // Draw the video frame
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Reset transformation
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    // Get the image as data URL
+    return canvas.toDataURL("image/jpeg", 0.92);
+  } catch (error) {
+    console.error("Error capturing image:", error);
     return null;
   }
-  
-  const video = videoRef.current;
-  const canvas = canvasRef.current;
-  const context = canvas.getContext('2d');
-  
-  if (!context) {
-    console.warn("Could not get 2d context from canvas");
-    return null;
-  }
-  
-  // Check if the video has valid dimensions
-  if (video.videoWidth === 0 || video.videoHeight === 0) {
-    console.warn("Video dimensions are invalid:", video.videoWidth, video.videoHeight);
-    return null;
-  }
-  
-  console.log("Capturing image from video with dimensions:", video.videoWidth, "x", video.videoHeight);
-  
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  context.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
-  const imageData = canvas.toDataURL('image/png');
-  console.log("Image captured successfully");
-  
-  return imageData;
-}
+};

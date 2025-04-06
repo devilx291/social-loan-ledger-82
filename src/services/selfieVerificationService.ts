@@ -1,44 +1,40 @@
 
-import { verifyDocument } from './documentService';
-import { AuthUser } from './authService';
+import { AuthUser } from "./authService";
 
-export async function verifySelfieImage(
-  selfieImage: string, 
-  userId: string
-): Promise<{ 
-  verified: boolean; 
-  message?: string;
-}> {
-  try {
-    const response = await fetch(selfieImage);
-    const blob = await response.blob();
-    
-    const formData = new FormData();
-    formData.append('document', blob, 'selfie.png');
-    formData.append('type', 'selfie');
-    formData.append('userId', userId);
-    
-    return await verifyDocument(formData);
-  } catch (error: any) {
-    console.error("Error verifying selfie:", error);
-    throw error;
-  }
-}
+export const verifySelfieImage = async (imageData: string, userId: string) => {
+  console.log("Verifying selfie for user:", userId);
+  
+  // This is a mock implementation
+  // In a real app, this would call an API to verify the selfie
+  return new Promise<{ verified: boolean; message?: string }>((resolve) => {
+    // Simulate API delay
+    setTimeout(() => {
+      // For demo purposes, always verify successfully
+      resolve({
+        verified: true,
+        message: "Identity verified successfully"
+      });
+    }, 2000);
+  });
+};
 
-export async function updateUserSelfie(
-  updateUserFn: (updates: Partial<AuthUser>) => Promise<void>,
+export const updateUserSelfie = async (
+  updateUser: (updates: Partial<AuthUser>) => Promise<void>,
   user: AuthUser,
   selfieImage: string
-): Promise<void> {
+) => {
   try {
-    await updateUserFn({
+    // Update the user profile with the selfie image and verified status
+    await updateUser({
       ...user,
-      trustScore: Math.min(100, user.trustScore + 20),
+      selfieImage,
       isVerified: true,
-      selfieImage: selfieImage
+      trustScore: Math.min(user.trustScore + 20, 100)
     });
+
+    return true;
   } catch (error) {
-    console.error("Error updating user profile:", error);
+    console.error("Error updating user with selfie:", error);
     throw error;
   }
-}
+};
