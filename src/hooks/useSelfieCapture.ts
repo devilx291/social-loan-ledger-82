@@ -16,8 +16,9 @@ export function useSelfieCapture() {
   const [capturingSelfie, setCapturingSelfie] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   // Clean up camera stream on unmount
@@ -33,6 +34,7 @@ export function useSelfieCapture() {
     if (!showCamera && streamRef.current) {
       stopCameraStream(streamRef.current);
       streamRef.current = null;
+      setIsCameraReady(false);
     }
   }, [showCamera]);
 
@@ -48,14 +50,21 @@ export function useSelfieCapture() {
 
   const startCamera = async () => {
     setCameraError(null);
+    setIsCameraReady(false);
     
-    // First show the camera UI so the DOM elements are rendered before we access them
+    // First show the camera UI so the DOM elements are rendered
     setShowCamera(true);
     
     // Allow time for the modal to open and the video element to be added to the DOM
     setTimeout(async () => {
       try {
         console.log("Starting camera setup, video ref exists:", !!videoRef.current);
+        
+        if (!videoRef.current) {
+          setCameraError("Video element not initialized. Please refresh and try again.");
+          return;
+        }
+        
         const { stream, error } = await setupCamera(videoRef);
         
         if (error) {
@@ -65,34 +74,40 @@ export function useSelfieCapture() {
             description: error,
             variant: "destructive",
           });
-          if (!stream) {
-            setShowCamera(false);
-          }
           return;
         }
         
         if (stream) {
           streamRef.current = stream;
+          setIsCameraReady(true);
           console.log("Camera started successfully");
         }
       } catch (err) {
         console.error("Unexpected error starting camera:", err);
         setCameraError("An unexpected error occurred while accessing the camera");
-        setShowCamera(false);
       }
-    }, 500); // Give the DOM time to render the video element
+    }, 1000); // Give the DOM a full second to render the video element
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      stopCameraStream(streamRef.current);
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+    setIsCameraReady(false);
   };
 
   const captureSelfie = () => {
+    if (!videoRef.current || !canvasRef.current) {
+      setCameraError("Cannot capture image. Video not initialized.");
+      return;
+    }
+
     const imageData = captureImageFromVideo(videoRef, canvasRef);
     if (imageData) {
       setSelfieImage(imageData);
-      
-      if (streamRef.current) {
-        stopCameraStream(streamRef.current);
-        streamRef.current = null;
-      }
-      setShowCamera(false);
+      stopCamera();
     } else {
       setCameraError("Failed to capture image. Please try again.");
     }
@@ -162,11 +177,13 @@ export function useSelfieCapture() {
     selfieImage,
     selfieStatus,
     capturingSelfie,
+    isCameraReady,
     videoRef,
     canvasRef,
     verificationMessage,
     cameraError,
     startCamera,
+    stopCamera,
     captureSelfie,
     handleVerifySelfie,
     retakeSelfie,

@@ -1,3 +1,4 @@
+
 import { MutableRefObject } from 'react';
 
 interface CameraSetupResult {
@@ -16,6 +17,15 @@ export async function setupCamera(
       };
     }
     
+    // Check if videoRef is valid before proceeding
+    if (!videoRef || !videoRef.current) {
+      console.error("Video element reference is not available");
+      return {
+        stream: null,
+        error: "Video element not found. Please try again."
+      };
+    }
+    
     const constraints = { 
       video: { 
         facingMode: "user",
@@ -28,18 +38,9 @@ export async function setupCamera(
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     console.log("Camera access granted, stream obtained:", stream);
     
-    // Make sure the videoRef is actually pointing to a mounted video element
-    if (!videoRef.current) {
-      console.error("Video element not found in DOM");
-      return {
-        stream,
-        error: "Video element not found"
-      };
-    }
-    
     // Set the stream to the video element
     videoRef.current.srcObject = stream;
-    console.log("Stream assigned to video element");
+    console.log("Stream assigned to video element:", videoRef.current);
     
     // Ensure the video loads properly
     return new Promise((resolve) => {
@@ -60,7 +61,7 @@ export async function setupCamera(
         
         // Add a timeout in case the metadata never loads
         setTimeout(() => {
-          if (!videoRef.current!.paused) {
+          if (videoRef.current && !videoRef.current.paused) {
             console.log("Video is already playing");
             resolve({ stream, error: null });
           } else {
