@@ -7,6 +7,7 @@ import { KycTab } from "@/components/settings/KycTab";
 import { DocumentsTab } from "@/components/settings/DocumentsTab";
 import { SecurityTab } from "@/components/settings/SecurityTab";
 import { NotificationsTab } from "@/components/settings/NotificationsTab";
+import { BalanceTab } from "@/components/settings/BalanceTab";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -31,6 +32,7 @@ const Settings = () => {
           >
             <TabsList className="w-full mb-6">
               <TabsTrigger value="profile" className="flex-1">Profile</TabsTrigger>
+              <TabsTrigger value="balance" className="flex-1">Balance</TabsTrigger>
               <TabsTrigger value="kyc" className="flex-1">KYC Verification</TabsTrigger>
               <TabsTrigger value="documents" className="flex-1">Documents</TabsTrigger>
               <TabsTrigger value="security" className="flex-1">Security</TabsTrigger>
@@ -39,6 +41,10 @@ const Settings = () => {
             
             <TabsContent value="profile">
               <ProfileTab />
+            </TabsContent>
+            
+            <TabsContent value="balance">
+              <BalanceTab />
             </TabsContent>
             
             <TabsContent value="kyc">
