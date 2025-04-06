@@ -59,7 +59,7 @@ export async function setupCamera(
           }
         };
         
-        // Add a timeout in case the metadata never loads
+        // Add a timeout in case the metadata never loads, increased for better reliability
         setTimeout(() => {
           if (videoRef.current && !videoRef.current.paused) {
             console.log("Video is already playing");
@@ -68,7 +68,7 @@ export async function setupCamera(
             console.error("Video metadata loading timeout");
             resolve({ stream, error: "Camera initialization timeout" });
           }
-        }, 3000);
+        }, 5000); // Increased timeout for better reliability
       } else {
         resolve({ stream, error: "Video element disappeared" });
       }

@@ -16,11 +16,13 @@ export const KycTab = () => {
     selfieImage,
     selfieStatus,
     capturingSelfie,
+    isCameraReady,
     videoRef,
     canvasRef,
     verificationMessage,
     cameraError,
     startCamera,
+    stopCamera,
     captureSelfie,
     handleVerifySelfie,
     retakeSelfie
@@ -28,14 +30,9 @@ export const KycTab = () => {
 
   // Ensure refs are properly connected
   useEffect(() => {
-    if (videoElementRef.current) {
-      videoRef.current = videoElementRef.current;
-    }
-    
-    if (canvasElementRef.current) {
-      canvasRef.current = canvasElementRef.current;
-    }
-  }, [videoRef, canvasRef, showCamera]);
+    videoRef.current = videoElementRef.current;
+    canvasRef.current = canvasElementRef.current;
+  }, [videoRef, canvasRef]);
 
   return (
     <Card>
@@ -93,10 +90,20 @@ export const KycTab = () => {
                       <div className="border-2 border-dashed border-white w-64 h-64 rounded-full opacity-50"></div>
                     </div>
                   </div>
-                  <Button onClick={captureSelfie} className="mt-4">
-                    <Camera className="h-4 w-4 mr-2" />
-                    Capture Selfie
-                  </Button>
+                  {isCameraReady ? (
+                    <Button 
+                      onClick={() => captureSelfie()} 
+                      className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Capture Selfie
+                    </Button>
+                  ) : (
+                    <Button disabled className="mt-4">
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Starting Camera...
+                    </Button>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
@@ -161,13 +168,4 @@ export const KycTab = () => {
       </CardContent>
     </Card>
   );
-
-  function stopCamera() {
-    if (videoElementRef.current?.srcObject) {
-      const stream = videoElementRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoElementRef.current.srcObject = null;
-    }
-  }
 };
-
