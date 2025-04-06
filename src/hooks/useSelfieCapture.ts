@@ -49,44 +49,38 @@ export function useSelfieCapture() {
   const startCamera = async () => {
     setCameraError(null);
     
-    try {
-      const { stream, error } = await setupCamera(videoRef);
-      
-      if (error) {
-        setCameraError(error);
-        toast({
-          title: "Camera access failed",
-          description: error,
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (stream && videoRef.current) {
-        streamRef.current = stream;
-        setShowCamera(true);
+    // First show the camera UI so the DOM elements are rendered before we access them
+    setShowCamera(true);
+    
+    // Allow time for the modal to open and the video element to be added to the DOM
+    setTimeout(async () => {
+      try {
+        console.log("Starting camera setup, video ref exists:", !!videoRef.current);
+        const { stream, error } = await setupCamera(videoRef);
         
-        // Add this check to ensure video has loaded metadata before playing
-        if (videoRef.current.readyState >= 2) {
-          videoRef.current.play().catch(err => {
-            console.error("Error playing video:", err);
-            setCameraError("Failed to start camera stream");
+        if (error) {
+          setCameraError(error);
+          toast({
+            title: "Camera access failed",
+            description: error,
+            variant: "destructive",
           });
-        } else {
-          videoRef.current.onloadedmetadata = () => {
-            if (videoRef.current) {
-              videoRef.current.play().catch(err => {
-                console.error("Error playing video:", err);
-                setCameraError("Failed to start camera stream");
-              });
-            }
-          };
+          if (!stream) {
+            setShowCamera(false);
+          }
+          return;
         }
+        
+        if (stream) {
+          streamRef.current = stream;
+          console.log("Camera started successfully");
+        }
+      } catch (err) {
+        console.error("Unexpected error starting camera:", err);
+        setCameraError("An unexpected error occurred while accessing the camera");
+        setShowCamera(false);
       }
-    } catch (err) {
-      console.error("Unexpected error starting camera:", err);
-      setCameraError("An unexpected error occurred while accessing the camera");
-    }
+    }, 500); // Give the DOM time to render the video element
   };
 
   const captureSelfie = () => {
@@ -99,6 +93,8 @@ export function useSelfieCapture() {
         streamRef.current = null;
       }
       setShowCamera(false);
+    } else {
+      setCameraError("Failed to capture image. Please try again.");
     }
   };
 

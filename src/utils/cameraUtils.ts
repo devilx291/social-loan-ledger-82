@@ -1,4 +1,3 @@
-
 import { MutableRefObject } from 'react';
 
 interface CameraSetupResult {
@@ -29,18 +28,50 @@ export async function setupCamera(
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     console.log("Camera access granted, stream obtained:", stream);
     
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      console.log("Stream assigned to video element");
-    } else {
-      console.warn("Video ref is null, cannot assign stream");
+    // Make sure the videoRef is actually pointing to a mounted video element
+    if (!videoRef.current) {
+      console.error("Video element not found in DOM");
       return {
-        stream: null,
+        stream,
         error: "Video element not found"
       };
     }
     
-    return { stream, error: null };
+    // Set the stream to the video element
+    videoRef.current.srcObject = stream;
+    console.log("Stream assigned to video element");
+    
+    // Ensure the video loads properly
+    return new Promise((resolve) => {
+      if (videoRef.current) {
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play()
+              .then(() => {
+                console.log("Video is now playing");
+                resolve({ stream, error: null });
+              })
+              .catch(err => {
+                console.error("Error playing video:", err);
+                resolve({ stream, error: "Failed to play video stream" });
+              });
+          }
+        };
+        
+        // Add a timeout in case the metadata never loads
+        setTimeout(() => {
+          if (!videoRef.current!.paused) {
+            console.log("Video is already playing");
+            resolve({ stream, error: null });
+          } else {
+            console.error("Video metadata loading timeout");
+            resolve({ stream, error: "Camera initialization timeout" });
+          }
+        }, 3000);
+      } else {
+        resolve({ stream, error: "Video element disappeared" });
+      }
+    });
   } catch (error: any) {
     console.error("Error accessing camera:", error);
     let errorMessage = "Failed to access camera";
